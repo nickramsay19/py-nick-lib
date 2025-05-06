@@ -25,7 +25,8 @@ class _TupleClassMeta(type):
                 setattr(new_cls, key, value)
 
         # don't actually use the tuple superclass's __new__
-        # TODO if superclass is a subclass of TupleClass, then make smart constructor chain
+        # TODO if superclass is a subclass of TupleClass, then make smart 
+        # constructor chain
         original_new = new_cls.__new__
         def __new__(cls, *args, **kwargs):
             instance = original_new(cls, tuple(args)) # convert args to tuple
@@ -94,6 +95,8 @@ class TupleClass(tuple, metaclass=_TupleClassMeta):
         for name, value in kwargs.items():
             setattr(self, name, value)
 
+        setattr(self, '__TupleClass_field_names', field_names)
+
     # allow tuple equivalence w/ total_ordering
     def __eq__(self, other):
         return tuple(self) == tuple(other)
@@ -101,7 +104,7 @@ class TupleClass(tuple, metaclass=_TupleClassMeta):
     def __lt__(self, other):
         return tuple(self) < tuple(other)
 
-class TestVec(unittest.TestCase):
+class TestTupleClass(unittest.TestCase):
     def _make_dummy_TupleClass(self) -> type:
         class Dummy(TupleClass):
             x: int # no default
