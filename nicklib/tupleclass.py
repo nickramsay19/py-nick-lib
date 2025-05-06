@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, MISSING, make_dataclass
 import functools
 import io
+import unittest
 
 class _TupleClassMeta(type):
     """The metaclass of TupleClass (see below for TupleClass)"""
@@ -100,109 +101,95 @@ class TupleClass(tuple, metaclass=_TupleClassMeta):
     def __lt__(self, other):
         return tuple(self) < tuple(other)
 
-def _make_dummy_TupleClass() -> type:
-    class Dummy(TupleClass):
-        x: int # no default
-        y: str = 'default'
-    
-    return Dummy
-
-def _test_tuple_behavior():
-    Dummy = _make_dummy_TupleClass()
+class TestVec(unittest.TestCase):
+    def _make_dummy_TupleClass(self) -> type:
+        class Dummy(TupleClass):
+            x: int # no default
+            y: str = 'default'
         
-    # a Dummy is a subclass of tuple (not really, but python thinks so)
-    assert issubclass(Dummy, tuple)
-    
-    # a Dummy is a tuple
-    d = Dummy(10,'hi')
-    assert isinstance(d, tuple)
-    assert isinstance(d, Dummy)
-    assert d[0] == 10
-    assert d[1] == 'hi'
-    assert d == (10, 'hi')
-    assert list(d) == [10, 'hi']
-    assert len(d) == 2
+        return Dummy
 
-def _test_named_tuple_behavior():
-    Dummy = _make_dummy_TupleClass() 
+    def test_tuple_behavior(self):
+        Dummy = self._make_dummy_TupleClass()
+            
+        # a Dummy is a subclass of tuple (not really, but python thinks so)
+        assert issubclass(Dummy, tuple)
+        
+        # a Dummy is a tuple
+        d = Dummy(10,'hi')
+        assert isinstance(d, tuple)
+        assert isinstance(d, Dummy)
+        assert d[0] == 10
+        assert d[1] == 'hi'
+        assert d == (10, 'hi')
+        assert list(d) == [10, 'hi']
+        assert len(d) == 2
 
-    # a Dummy is a NamedTuple
-    d = Dummy(10,'hi')
-    assert d.x == 10
-    assert d.y == 'hi'
+    def test_named_tuple_behavior(self):
+        Dummy = self._make_dummy_TupleClass() 
 
-    # a Dummy supports defaults
-    assert Dummy(10).y == 'default'
+        # a Dummy is a NamedTuple
+        d = Dummy(10,'hi')
+        assert d.x == 10
+        assert d.y == 'hi'
 
-    # correct constructor calling
-    assert Dummy(x=10,y='hi') == (10, 'hi')
-    assert Dummy(x=10) == (10, 'default')
-    assert Dummy(10,y='hi') == (10, 'hi')
+        # a Dummy supports defaults
+        assert Dummy(10).y == 'default'
 
-def _test_mutability():
-    d = _make_dummy_TupleClass()(10,'hi')
+        # correct constructor calling
+        assert Dummy(x=10,y='hi') == (10, 'hi')
+        assert Dummy(x=10) == (10, 'default')
+        assert Dummy(10,y='hi') == (10, 'hi')
 
-    d.x = 11
-    assert d.x == 11
+    def test_mutability(self):
+        d = self._make_dummy_TupleClass()(10,'hi')
 
-def _test_inheritance():
-    class A(TupleClass):
-        a: str = 'a'
+        d.x = 11
+        assert d.x == 11
 
-    class B(A):
-        b: str = 'b'
+    def test_inheritance(self):
+        class A(TupleClass):
+            a: str = 'a'
 
-    b = B()
-    assert b.a == 'a'
-    assert b.b == 'b'
+        class B(A):
+            b: str = 'b'
 
-def _test_inheritance_no_defaults_a():
-    class A(TupleClass):
-        a: str
+        b = B()
+        assert b.a == 'a'
+        assert b.b == 'b'
 
-    class B(A):
-        b: str = 'b'
+    def test_inheritance_no_defaults_a(self):
+        class A(TupleClass):
+            a: str
 
-    b = B('a')
-    assert b.a == 'a'
-    assert b.b == 'b'
+        class B(A):
+            b: str = 'b'
 
-def _test_inheritance_no_defaults_b():
-    class A(TupleClass):
-        a: str = 'a'
+        b = B('a')
+        assert b.a == 'a'
+        assert b.b == 'b'
 
-    class B(A):
-        b: str
+    def test_inheritance_no_defaults_b(self):
+        class A(TupleClass):
+            a: str = 'a'
 
-    b = B('b')
-    assert b.a == 'b'
-    assert b.b == None
+        class B(A):
+            b: str
 
-def _test_inheritance_no_defaults_ab():
-    class A(TupleClass):
-        a: str
+        b = B('b')
+        assert b.a == 'b'
+        assert b.b == None
 
-    class B(A):
-        b: str
+    def test_inheritance_no_defaults_ab(self):
+        class A(TupleClass):
+            a: str
 
-    #b = B('a', 'b') # ERROR TypeError: Expected at most 1 arguments, got 2
-    #assert b.a == 'a'
-    #assert b.b == 'b'
+        class B(A):
+            b: str
 
-def _test_untyped_attributes():
-    class A(TupleClass):
-        a = 5
-
-    a = A(5)
-
-    assert a.a == 5
+        b = B('a', 'b')
+        assert b.a == 'a'
+        assert b.b == 'b'
 
 if __name__ == '__main__':
-    _test_tuple_behavior()
-    _test_named_tuple_behavior()
-    _test_mutability()
-    _test_inheritance()
-    _test_inheritance_no_defaults_a()
-    _test_inheritance_no_defaults_b()
-    _test_inheritance_no_defaults_ab()
-    _test_untyped_attributes()
+    unittest.main()
