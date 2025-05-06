@@ -1,3 +1,11 @@
+"""TupleClass
+
+A mutable, inheritable NamedTuple alternative. It exhibits the properties
+and behaviours of a tuple including tuple unpacking and iteration.
+
+Alternative names: FieldTuple, Field, Mutple
+"""
+
 from __future__ import annotations
 from typing import Any
 from collections.abc import Mapping
@@ -6,7 +14,7 @@ import functools
 import io
 
 class _TupleClassMeta(type):
-    '''The metaclass of TupleClass (see below for TupleClass)'''
+    """The metaclass of TupleClass (see below for TupleClass)"""
     def __new__(cls, name, bases, dct):
         annotations = dct.get('__annotations__', {})
         new_cls = make_dataclass(name, [(name, typ, field(default=MISSING)) for name, typ in annotations.items()], bases=bases) # pass tuple superclass in here in bases
@@ -55,17 +63,23 @@ class _TupleClassMeta(type):
 
 @functools.total_ordering
 class TupleClass(tuple, metaclass=_TupleClassMeta):
-    '''
-    Mutable Named pseudo-Tuple.
+    """Mutable Named pseudo-Tuple.
 
     Acts just like a regular NamedTuple and thus a normal tuple, but, is really a subclass of a dataclass instance. 
 
     Requires each specified field to be typed, since in Python, we can only determine dynamic fields via typed __annotations__.
+    """
 
-    Doesn't allow inhertance.
-    '''
     def __init__(self, *args, **kwargs):
-        field_names = list(self.__annotations__.keys())
+        # store all annotation names in their defined order
+        field_names = []
+
+        # check for inherited annotations
+        for base in self.__class__.__mro__[1:-3]:
+            field_names.extend(list(base.__annotations__.keys()))
+
+        # add all annotations defined in this class only
+        field_names.extend(list(self.__annotations__.keys()))
         if len(args) > len(field_names):
             raise TypeError(f"Expected at most {len(field_names)} arguments, got {len(args)}")
 
@@ -142,17 +156,6 @@ def _test_inheritance():
     assert b.a == 'a'
     assert b.b == 'b'
 
-def _test_inheritance_no_defaults_b():
-    class A(TupleClass):
-        a: str = 'a'
-
-    class B(A):
-        b: str
-
-    b = B('b')
-    assert b.a == 'a'
-    assert b.b == 'b'
-
 def _test_inheritance_no_defaults_a():
     class A(TupleClass):
         a: str
@@ -161,8 +164,19 @@ def _test_inheritance_no_defaults_a():
         b: str = 'b'
 
     b = B('a')
-    #assert b.a == 'a' # FAIL
-    assert b.b == 'a'
+    assert b.a == 'a'
+    assert b.b == 'b'
+
+def _test_inheritance_no_defaults_b():
+    class A(TupleClass):
+        a: str = 'a'
+
+    class B(A):
+        b: str
+
+    b = B('b')
+    assert b.a == 'b'
+    assert b.b == None
 
 def _test_inheritance_no_defaults_ab():
     class A(TupleClass):
@@ -175,44 +189,20 @@ def _test_inheritance_no_defaults_ab():
     #assert b.a == 'a'
     #assert b.b == 'b'
 
-def test():
+def _test_untyped_attributes():
+    class A(TupleClass):
+        a = 5
+
+    a = A(5)
+
+    assert a.a == 5
+
+if __name__ == '__main__':
     _test_tuple_behavior()
     _test_named_tuple_behavior()
     _test_mutability()
     _test_inheritance()
     _test_inheritance_no_defaults_a()
-    _test_inheritance_no_defaults_b() # FAIL
-    _test_inheritance_no_defaults_ab() # FAIL
-
-def main():
-    test()
-
-if __name__ == '__main__':
-    main()
-
-'''
-# Mutple, FieldTuple
-# Field, tupdleif 
-
-class ABSTRACT: # fake top inheritance ceiling that we will want to exclude from __mro__ loop
-    pass
-
-class A(ABSTRACT):
-    a: str = 'a'
-
-class B(A):
-    b: str = 'b'
-
-class C(B):
-    c: str = 'c'
-
-    #def __new__(cls, *args, **kwargs):
-        #filter(lambda x: issubclass(x, ABSTRACT) and x != ABSTRACT, reversed(cls.__mro__)):
-#            print(t)
-
-    def __init__(self, *args, **kwargs):
-        for t in filter(lambda x: issubclass(x, ABSTRACT) and x != ABSTRACT, reversed(self.__class__.__mro__)):
-            print(t)
-
-c = C()
-```
+    _test_inheritance_no_defaults_b()
+    _test_inheritance_no_defaults_ab()
+    _test_untyped_attributes()
